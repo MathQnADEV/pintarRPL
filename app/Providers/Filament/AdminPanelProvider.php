@@ -25,6 +25,7 @@ class AdminPanelProvider extends PanelProvider
     {
         return $panel
             ->default()
+            ->brandName('PINTAR')
             ->id('admin')
             ->path('admin')
             ->login()
@@ -52,6 +53,7 @@ class AdminPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
+            ->authGuard('web')
             ->authMiddleware([
                 Authenticate::class,
             ]);
