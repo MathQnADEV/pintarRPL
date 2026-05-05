@@ -2,12 +2,14 @@
 
 namespace App\Filament\Resources\Users\Tables;
 
+use Dom\Text;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
@@ -23,12 +25,12 @@ class UsersTable
                 TextColumn::make('email')
                     ->label('Email address')
                     ->searchable(),
-                TextColumn::make('email_verified_at')
-                    ->dateTime()
-                    ->sortable(),
                 TextColumn::make('phone')
                     ->searchable(),
-                TextColumn::make('photo_path')
+                ImageColumn::make('photo')
+                    ->circular(),
+                TextColumn::make('roles.name')
+                    ->label('Role')
                     ->searchable(),
                 TextColumn::make('created_at')
                     ->dateTime()
