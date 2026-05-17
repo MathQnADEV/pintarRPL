@@ -7,10 +7,27 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['title', 'description', 'content', 'level', 'order_position', 'is_active'])]
+#[Fillable(['title', 'description', 'content', 'video_url', 'level', 'order_position', 'is_active'])]
 class Topic extends Model
 {
     use SoftDeletes;
+
+    public function getYoutubeEmbedUrl(): ?string
+    {
+        if (!$this->video_url) {
+            return null;
+        }
+
+        preg_match(
+            '/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/',
+            $this->video_url,
+            $matches
+        );
+
+        return isset($matches[1])
+            ? 'https://www.youtube.com/embed/' . $matches[1]
+            : null;
+    }
 
     public function questions(): HasMany
     {

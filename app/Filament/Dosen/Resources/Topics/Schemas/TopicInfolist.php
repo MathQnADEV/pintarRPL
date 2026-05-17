@@ -41,6 +41,13 @@ class TopicInfolist
                     ->placeholder('–')
                     ->columnSpanFull(),
 
+                TextEntry::make('video_url')
+                    ->label('Video YouTube')
+                    ->placeholder('Belum ada video')
+                    ->url(fn (?string $state): ?string => $state)
+                    ->openUrlInNewTab()
+                    ->columnSpanFull(),
+
                 TextEntry::make('content')
                     ->label('Konten Materi')
                     ->html()

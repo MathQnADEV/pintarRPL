@@ -52,9 +52,17 @@ class TopicForm
                     ->helperText('Nonaktifkan jika materi belum siap dipublish')
                     ->default(true),
 
+                TextInput::make('video_url')
+                    ->label('Link Video YouTube')
+                    ->helperText('Tempel link YouTube, contoh: https://youtu.be/xxxx atau https://youtube.com/watch?v=xxxx')
+                    ->placeholder('https://www.youtube.com/watch?v=...')
+                    ->url()
+                    ->nullable()
+                    ->columnSpanFull(),
+
                 RichEditor::make('content')
                     ->label('Konten Materi')
-                    ->helperText('Tambahkan teks, gambar, atau kode program. Animasi visualisasi dapat disisipkan sebagai HTML.')
+                    ->helperText('Tulis teks, sisipkan kode program, tabel, atau gambar/GIF animasi melalui tombol "Lampirkan File" di toolbar.')
                     ->required()
                     ->toolbarButtons([
                         'bold', 'italic', 'underline', 'strike',
