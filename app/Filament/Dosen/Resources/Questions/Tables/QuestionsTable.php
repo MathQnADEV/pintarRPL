@@ -7,6 +7,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
+use Filament\Forms\Components\Select;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
@@ -59,7 +60,8 @@ class QuestionsTable
 
                 TextColumn::make('question_text')
                     ->label('Pertanyaan')
-                    ->limit(70)
+                    ->formatStateUsing(fn (string $state): string => trim(strip_tags($state)))
+                    ->limit(80)
                     ->wrap()
                     ->searchable(),
 
@@ -77,32 +79,54 @@ class QuestionsTable
             ])
             ->defaultSort('updated_at', 'desc')
             ->filters([
-                // Filter berdasarkan tipe soal
-                Filter::make('pretest')
-                    ->label('Soal Pre-test')
-                    ->query(fn (Builder $q) => $q->where('is_pretest', true))
-                    ->toggle(),
-
-                Filter::make('kuis')
-                    ->label('Soal Kuis')
-                    ->query(fn (Builder $q) => $q->where('is_pretest', false)->where('is_posttest', false))
-                    ->toggle(),
-
-                Filter::make('posttest')
-                    ->label('Soal Post-test')
-                    ->query(fn (Builder $q) => $q->where('is_posttest', true))
-                    ->toggle(),
+                /*
+                 * Filter tipe soal — pakai Filter::make() dengan form Select
+                 * supaya query-nya pasti dijalankan (SelectFilter::query() tidak
+                 * berjalan di Filament v4 untuk kolom virtual).
+                 */
+                Filter::make('tipe_soal')
+                    ->form([
+                        Select::make('tipe')
+                            ->label('Tipe Soal')
+                            ->options([
+                                'pretest'  => '🎓 Pre-test',
+                                'kuis'     => '✏️ Kuis',
+                                'posttest' => '🏆 Post-test',
+                            ])
+                            ->placeholder('— Semua Tipe —')
+                            ->native(false),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return match ($data['tipe'] ?? null) {
+                            'pretest'  => $query->where('is_pretest', true)
+                                               ->where('is_posttest', false),
+                            'kuis'     => $query->where('is_pretest', false)
+                                               ->where('is_posttest', false),
+                            'posttest' => $query->where('is_posttest', true)
+                                               ->where('is_pretest', false),
+                            default    => $query,   // tidak ada pilihan → tampilkan semua
+                        };
+                    })
+                    ->indicateUsing(function (array $data): ?string {
+                        $labels = [
+                            'pretest'  => '🎓 Pre-test',
+                            'kuis'     => '✏️ Kuis',
+                            'posttest' => '🏆 Post-test',
+                        ];
+                        $tipe = $data['tipe'] ?? null;
+                        return $tipe ? 'Tipe: ' . ($labels[$tipe] ?? $tipe) : null;
+                    }),
 
                 // Filter berdasarkan sub bahasan (untuk kuis)
                 SelectFilter::make('topic_id')
-                    ->label('Filter Sub Bahasan')
+                    ->label('Sub Bahasan')
                     ->relationship('topic', 'title')
                     ->searchable()
                     ->preload(),
 
-                // Filter berdasarkan level (untuk post-test)
+                // Filter berdasarkan level (untuk pre-test & post-test)
                 SelectFilter::make('level')
-                    ->label('Filter Level')
+                    ->label('Level')
                     ->options([
                         'pemula'   => 'Pemula',
                         'menengah' => 'Menengah',

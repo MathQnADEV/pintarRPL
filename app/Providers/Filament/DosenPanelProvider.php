@@ -23,8 +23,8 @@ class DosenPanelProvider extends PanelProvider
     public function panel(Panel $panel): Panel
     {
         return $panel
-            ->brandName('PINTAR — Panel Dosen')
-            ->id('dosen')
+            ->brandLogo(asset('img/logo.png'))
+            ->brandLogoHeight('3rem')            ->id('dosen')
             ->path('dosen')
             ->login()
             ->homeUrl(fn (): string => MonitoringDashboard::getUrl())

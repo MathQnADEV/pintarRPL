@@ -6,8 +6,8 @@ use App\Models\Question;
 use App\Models\Topic;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\ToggleButtons;
@@ -32,7 +32,7 @@ class QuestionForm
                         'Kuis: latihan per sub bahasan · '.
                         'Post-test: syarat naik ke level berikutnya'
                     )
-                    ->dehydrated(false)   // virtual — tidak disimpan ke DB
+                    ->dehydrated(false)
                     ->options([
                         'pretest'  => 'Soal Pre-test',
                         'kuis'     => 'Soal Kuis',
@@ -53,7 +53,6 @@ class QuestionForm
                     ->required()
                     ->live()
                     ->default('kuis')
-                    // Saat record dimuat, turunkan kategori dari flag boolean di DB
                     ->afterStateHydrated(function (ToggleButtons $component, ?Question $record): void {
                         if (! $record) {
                             $component->state('kuis');
@@ -61,7 +60,6 @@ class QuestionForm
                         }
                         $component->state($record->question_category);
                     })
-                    // Saat kategori berubah, setel flag boolean & reset field terkait
                     ->afterStateUpdated(function (Set $set, ?string $state): void {
                         $set('is_pretest', $state === 'pretest');
                         $set('is_posttest', $state === 'posttest');
@@ -75,7 +73,7 @@ class QuestionForm
                     })
                     ->columnSpanFull(),
 
-                // ── Hidden flags (persisted ke DB) ───────────────────────────
+                // ── Hidden flags ─────────────────────────────────────────────
 
                 Hidden::make('is_pretest')->default(false),
                 Hidden::make('is_posttest')->default(false),
@@ -111,48 +109,90 @@ class QuestionForm
                     ->helperText('Soal post-test digunakan untuk menentukan apakah mahasiswa layak naik dari level ini.')
                     ->columnSpanFull(),
 
-                // ── Step 3: Konten soal ──────────────────────────────────────
+                // ── Step 3: Tipe jawaban ─────────────────────────────────────
 
                 Select::make('type')
-                    ->label('Tipe Jawaban')
-                    ->options(['multiple_choice' => 'Pilihan Ganda'])
+                    ->label('Format Jawaban')
+                    ->options([
+                        'multiple_choice' => '🔘 Pilihan Ganda',
+                        'code_arrange'    => '🧩 Susun Kode (Duolingo-style)',
+                    ])
                     ->default('multiple_choice')
                     ->required()
-                    ->native(false),
+                    ->native(false)
+                    ->live()
+                    ->helperText(
+                        'Pilihan Ganda: mahasiswa memilih satu opsi yang benar. · '.
+                        'Susun Kode: mahasiswa menyusun baris/token kode ke urutan yang tepat.'
+                    ),
 
-                // spacer untuk kolom kanan agar tipe tidak melebar penuh
-                Textarea::make('question_text')
+                // ── Step 4: Teks pertanyaan ──────────────────────────────────
+
+                RichEditor::make('question_text')
                     ->label('Teks Pertanyaan')
-                    ->placeholder('Tuliskan pertanyaan di sini...')
+                    ->helperText('Gunakan tombol <> untuk menyisipkan blok kode sebagai konteks soal.')
                     ->required()
-                    ->rows(3)
+                    ->toolbarButtons([
+                        'bold', 'italic',
+                        'bulletList', 'orderedList',
+                        'codeBlock',
+                    ])
                     ->columnSpanFull(),
 
-                Textarea::make('explanation')
-                    ->label('Penjelasan Jawaban')
-                    ->placeholder('Jelaskan mengapa jawaban tersebut benar — ditampilkan ke mahasiswa setelah menjawab.')
-                    ->rows(3)
+                RichEditor::make('explanation')
+                    ->label('Penjelasan Jawaban (opsional)')
+                    ->helperText('Ditampilkan setelah mahasiswa selesai kuis/post-test.')
+                    ->toolbarButtons(['bold', 'italic', 'codeBlock'])
                     ->columnSpanFull(),
 
-                // ── Step 4: Pilihan jawaban ──────────────────────────────────
+                // ── Step 5: Opsi jawaban / baris kode ───────────────────────
 
                 Repeater::make('options')
-                    ->label('Pilihan Jawaban')
+                    ->label(fn (Get $get): string =>
+                        $get('type') === 'code_arrange'
+                            ? '🧩 Baris / Token Kode (isi setiap baris + nomor urut yang benar)'
+                            : '🔘 Pilihan Jawaban'
+                    )
                     ->relationship('options')
                     ->schema([
                         TextInput::make('option_text')
-                            ->label('Teks Pilihan')
-                            ->placeholder('contoh: O(n²)')
-                            ->required(),
+                            ->label(fn (Get $get): string =>
+                                $get('../../type') === 'code_arrange' ? 'Baris / Token Kode' : 'Teks Pilihan'
+                            )
+                            ->placeholder(fn (Get $get): string =>
+                                $get('../../type') === 'code_arrange'
+                                    ? 'contoh: cout << "Hello, World!";'
+                                    : 'contoh: O(n²)'
+                            )
+                            ->required()
+                            ->columnSpanFull(),
+
+                        // ── Hanya untuk multiple_choice ──────────────────────
                         Toggle::make('is_correct')
-                            ->label('Jawaban Benar'),
+                            ->label('Jawaban Benar')
+                            ->visible(fn (Get $get): bool => $get('../../type') !== 'code_arrange'),
+
+                        // ── Hanya untuk code_arrange ─────────────────────────
+                        TextInput::make('order')
+                            ->label('Nomor Urut')
+                            ->numeric()
+                            ->minValue(0)
+                            ->placeholder('0, 1, 2, 3 …')
+                            ->helperText('0 = pengecoh (muncul tapi bukan jawaban) · 1, 2, 3… = urutan benar')
+                            ->visible(fn (Get $get): bool => $get('../../type') === 'code_arrange'),
                     ])
                     ->columns(2)
                     ->minItems(2)
-                    ->maxItems(5)
-                    ->defaultItems(4)
-                    ->addActionLabel('+ Tambah Pilihan')
-                    ->helperText('Tandai tepat satu pilihan sebagai jawaban benar.')
+                    ->maxItems(10)
+                    ->defaultItems(fn (Get $get): int => $get('type') === 'code_arrange' ? 4 : 4)
+                    ->addActionLabel(fn (Get $get): string =>
+                        $get('type') === 'code_arrange' ? '+ Tambah Baris Kode' : '+ Tambah Pilihan'
+                    )
+                    ->helperText(fn (Get $get): string =>
+                        $get('type') === 'code_arrange'
+                            ? 'Masukkan setiap baris/token kode lalu beri nomor urut yang benar (1, 2, 3…). Mahasiswa akan menyusunnya secara acak.'
+                            : 'Tandai tepat satu pilihan sebagai jawaban benar.'
+                    )
                     ->columnSpanFull(),
             ]);
     }

@@ -24,7 +24,8 @@ class AdminPanelProvider extends PanelProvider
     {
         return $panel
             ->default()
-            ->brandName('PINTAR — Admin')
+            ->brandLogo(asset('img/logo.png'))
+            ->brandLogoHeight('3rem')
             ->id('admin')
             ->path('admin')
             ->login()

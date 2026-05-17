@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['question_id', 'option_text', 'is_correct'])]
+#[Fillable(['question_id', 'option_text', 'is_correct', 'order'])]
 class QuestionOption extends Model
 {
     use SoftDeletes;

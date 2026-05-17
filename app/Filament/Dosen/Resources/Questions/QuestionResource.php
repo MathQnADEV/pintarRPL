@@ -13,6 +13,8 @@ use App\Filament\Dosen\Resources\Questions\Tables\QuestionsTable;
 use App\Models\Question;
 use BackedEnum;
 use Filament\Resources\Resource;
+use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Database\Eloquent\Model;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
@@ -34,6 +36,18 @@ class QuestionResource extends Resource
     protected static ?string $pluralModelLabel = 'Bank Soal';
 
     protected static ?string $recordTitleAttribute = 'question_text';
+
+    // Hapus tag HTML dari judul halaman Edit/View (question_text kini menyimpan HTML)
+    public static function getRecordTitle(?Model $record): Htmlable|string|null
+    {
+        if (! $record) {
+            return null;
+        }
+
+        $plain = trim(strip_tags($record->question_text ?? ''));
+
+        return $plain !== '' ? \Illuminate\Support\Str::limit($plain, 60) : 'Soal #' . $record->id;
+    }
 
     protected static ?int $navigationSort = 3;
 
