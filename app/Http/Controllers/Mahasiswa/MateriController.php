@@ -55,8 +55,18 @@ class MateriController extends Controller
             ->first();
 
         if ($isPastLevel) {
-            // Level lampau: jangan ubah status, cukup perbarui waktu akses
-            $progress?->update(['last_accessed_at' => now()]);
+            // Level lampau: buat progress jika belum ada (misal: ditempatkan via pretest),
+            // atau sekadar perbarui waktu akses jika sudah ada.
+            if (! $progress) {
+                $progress = LearningProgress::create([
+                    'user_id'          => $user->id,
+                    'topic_id'         => $topic->id,
+                    'status'           => 'in_progress',
+                    'last_accessed_at' => now(),
+                ]);
+            } else {
+                $progress->update(['last_accessed_at' => now()]);
+            }
         } elseif (! $progress) {
             $progress = LearningProgress::create([
                 'user_id'          => $user->id,
@@ -97,6 +107,7 @@ class MateriController extends Controller
             'nextTopic',
             'hasKuis',
             'user',
+            'isPastLevel',
         ));
     }
 }
