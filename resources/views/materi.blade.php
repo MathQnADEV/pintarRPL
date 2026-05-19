@@ -267,7 +267,9 @@
                     $isActive     = $t->id === $topic->id;
                     $isDone       = $tp && $tp->status === 'completed';
                     $prevTopic    = $idx > 0 ? $topicsInLevel->get($idx - 1) : null;
-                    $isAccessible = $idx === 0
+                    // Level lampau → semua topik bebas diakses (tidak perlu sequential)
+                    $isAccessible = $isPastLevel
+                        || $idx === 0
                         || ($prevTopic && ($progressMap[$prevTopic->id] ?? null)?->status === 'completed');
                 @endphp
 
@@ -315,7 +317,7 @@
             <div class="p-4 rounded-t-2xl text-white font-extrabold flex justify-between items-center"
                  style="background-color: {{ $levelColor }}">
                 <span>{{ $levelLabel }} — {{ $topic->title }}</span>
-                @if ($progress->status === 'completed')
+                @if (($progress->status ?? null) === 'completed')
                     <span class="bg-white/20 px-3 py-1 rounded-full text-sm font-semibold">
                         ✓ Selesai · Skor terbaik: {{ $progress->best_score ?? 0 }}
                     </span>
@@ -394,7 +396,7 @@
                     ← Dashboard
                 </a>
 
-                @if ($progress->status === 'completed')
+                @if (($progress->status ?? null) === 'completed')
                     @if ($hasKuis)
                         <a href="{{ route('mahasiswa.kuis', $topic) }}"
                            class="px-5 py-3 bg-white text-[#4c3fb5] font-bold rounded-xl border-2 border-b-4 border-[#4c3fb5] hover:bg-[#f0eeff] transition text-sm whitespace-nowrap">
